@@ -17,7 +17,7 @@ spec:
         cloud.google.com/gke-accelerator: nvidia-tesla-t4
       containers:
         - name: chatterbox
-          image: us-central1-docker.pkg.dev/evently-486001/evently-repo/chatterbox-service:latest
+          image: us-central1-docker.pkg.dev/PROJECT_ID/evently-repo/chatterbox-service:latest
           ports:
             - containerPort: 8080
           resources:
@@ -31,11 +31,16 @@ spec:
           env:
             - name: GCS_BUCKET_NAME
               value: "sayops-recordings"
+            - name: CHATTERBOX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: chatterbox-api-key
+                  key: key
           readinessProbe:
             httpGet:
               path: /health
               port: 8080
-            initialDelaySeconds: 60
+            initialDelaySeconds: 60   # Model load takes ~30-45s on cold start
             periodSeconds: 10
           livenessProbe:
             httpGet:

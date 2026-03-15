@@ -1,0 +1,52 @@
+steps:
+  # 1. Build the Docker image tagged with the commit SHA
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - -t
+      - us-central1-docker.pkg.dev/$PROJECT_ID/evently-repo/chatterbox-service:$COMMIT_SHA
+      - -t
+      - us-central1-docker.pkg.dev/$PROJECT_ID/evently-repo/chatterbox-service:latest
+      - ./chatterbox-service
+
+  # 2. Push both tags to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [push, us-central1-docker.pkg.dev/$PROJECT_ID/evently-repo/chatterbox-service:$COMMIT_SHA]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [push, us-central1-docker.pkg.dev/$PROJECT_ID/evently-repo/chatterbox-service:latest]
+
+  # 3. Update the GKE deployment to use the new image (rolling update, zero downtime)
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - set
+      - image
+      - deployment/chatterbox-service
+      - chatterbox=us-central1-docker.pkg.dev/$PROJECT_ID/evently-repo/chatterbox-service:$COMMIT_SHA
+      - --namespace=default
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=speakops-voice'
+
+  # 4. Create/update the API key secret in the cluster
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud container clusters get-credentials speakops-voice \
+          --region us-central1 --project $PROJECT_ID
+        kubectl create secret generic chatterbox-api-key \
+          --from-literal=key=$_CHATTERBOX_API_KEY \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+images:
+  - us-central1-docker.pkg.dev/$PROJECT_ID/evently-repo/chatterbox-service:$COMMIT_SHA
+  - us-central1-docker.pkg.dev/$PROJECT_ID/evently-repo/chatterbox-service:latest
+
+options:
+  machineType: E2_HIGHCPU_8
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _CHATTERBOX_API_KEY: ''   # set this in the trigger substitution variables

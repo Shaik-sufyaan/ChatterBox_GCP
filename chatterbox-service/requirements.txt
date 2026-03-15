@@ -1,8 +1,8 @@
-fastapi>=0.115.0
-uvicorn>=0.30.0
-chatterbox-tts>=0.1.0
-torch>=2.2.0
-torchaudio>=2.2.0
-scipy>=1.13.0
-numpy>=1.26.0
-google-cloud-storage>=2.14.0
+fastapi==0.115.0
+uvicorn==0.30.0
+chatterbox-tts==0.1.6
+torch==2.2.0
+torchaudio==2.2.0
+scipy==1.13.0
+numpy==1.26.0
+google-cloud-storage==2.14.0
