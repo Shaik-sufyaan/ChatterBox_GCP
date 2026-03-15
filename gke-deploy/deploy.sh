@@ -91,18 +91,34 @@ kubectl apply -f chatterbox-service/k8s-hpa.yaml
 kubectl rollout status deployment/chatterbox-service --timeout=300s
 
 # ── Done ──────────────────────────────────────────────────────────────────────
-CLUSTER_IP=$(kubectl get svc chatterbox-service -o jsonpath='{.spec.clusterIP}')
+echo "▶ Waiting for internal load balancer IP..."
+LB_IP=""
+for _ in {1..60}; do
+  LB_IP=$(kubectl get svc chatterbox-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  if [[ -n "${LB_IP}" ]]; then
+    break
+  fi
+  sleep 10
+done
 
 echo ""
 echo "✅ Deployment complete."
 echo ""
 echo "  Internal service URL : http://chatterbox-service.default.svc.cluster.local/synthesize"
-echo "  Cluster IP           : http://${CLUSTER_IP}/synthesize"
-echo "  Health check         : http://${CLUSTER_IP}/health"
+if [[ -n "${LB_IP}" ]]; then
+  echo "  Internal LB IP       : http://${LB_IP}/synthesize"
+  echo "  Health check         : http://${LB_IP}/health"
+else
+  echo "  Internal LB IP       : pending"
+  echo "  Check with           : kubectl get svc chatterbox-service"
+fi
 echo ""
-echo "Set in your backend (Cloud Build trigger substitutions):"
-echo "  CHATTERBOX_SERVICE_URL=http://chatterbox-service.default.svc.cluster.local"
+echo "Set in your backend (Cloud Run env vars):"
+if [[ -n "${LB_IP}" ]]; then
+  echo "  CHATTERBOX_SERVICE_URL=http://${LB_IP}"
+else
+  echo "  CHATTERBOX_SERVICE_URL=http://<internal-lb-ip>"
+fi
 echo ""
-echo "NOTE: Backend (Cloud Run) and Chatterbox (GKE) are in separate networks."
-echo "      Use a private LoadBalancer or VPC peering to connect them."
-echo "      See README.md for networking options."
+echo "NOTE: Cloud Run cannot reach a GKE ClusterIP directly."
+echo "      This service is exposed through an internal GKE load balancer."

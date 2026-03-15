@@ -55,10 +55,12 @@ kind: Service
 metadata:
   name: chatterbox-service
   namespace: default
+  annotations:
+    cloud.google.com/load-balancer-type: "Internal"
 spec:
   selector:
     app: chatterbox-service
   ports:
     - port: 80
       targetPort: 8080
-  type: ClusterIP
+  type: LoadBalancer
