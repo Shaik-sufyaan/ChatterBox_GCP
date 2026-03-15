@@ -1,0 +1,32 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: chatterbox-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: chatterbox-service
+  minReplicas: 1   # Never scale to zero — cold start on a GPU pod takes ~60s
+  maxReplicas: 3   # Matches the node pool max-nodes: 3 in the plan
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 90   # Scale up when CPU > 90%
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300   # Wait 5 min of low traffic before scaling down
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120            # Remove at most 1 pod every 2 min (gentle ramp-down)
+    scaleUp:
+      stabilizationWindowSeconds: 30    # React to CPU spikes within 30s
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60             # Add at most 1 pod per minute
