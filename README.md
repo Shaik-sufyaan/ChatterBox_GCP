@@ -1,4 +1,4 @@
-# Chatterbox TTS Service
+# ChatterBox TTS Service
 
 Voice cloning microservice using [Chatterbox-Turbo](https://github.com/resemble-ai/chatterbox) (350M params, MIT license). Runs on GKE with T4 GPU. Handles agents that have a custom voice reference — Kokoro handles platform default voices.
 
